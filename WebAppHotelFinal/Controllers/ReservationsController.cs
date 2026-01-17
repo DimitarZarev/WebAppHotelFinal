@@ -22,21 +22,36 @@ namespace WebAppHotelFinal.Controllers
         // GET: Reservations
         public async Task<IActionResult> Index()
         {
-            var appUser = await _userManager.GetUserAsync(User);
-            var client = await _context.Clients.FirstOrDefaultAsync(c => c.AppUserId == appUser.Id);
+            if (User.IsInRole("Admin"))
+            {
+                // Admin sees all reservations
+                var allReservations = await _context.Reservations
+                    .AsNoTracking()
+                    .Include(r => r.Room)
+                    .Include(r => r.Client)
+                    .OrderByDescending(r => r.DateIn)
+                    .ToListAsync();
 
-            if (client == null)
-                return Forbid(); // or redirect with a message
+                return View(allReservations);
+            }
+            else
+            {
+                // Regular user sees only their reservations
+                var appUser = await _userManager.GetUserAsync(User);
+                var client = await _context.Clients.FirstOrDefaultAsync(c => c.AppUserId == appUser.Id);
 
-            var reservations = await _context.Reservations
-                .AsNoTracking()
-                .Include(r => r.Room)
-                .Include(r => r.Client)
-                .Where(r => r.ClientId == client.Id) // only their reservations
-                .OrderByDescending(r => r.DateIn)
-                .ToListAsync();
+                if (client == null) return Forbid();
 
-            return View(reservations);
+                var reservations = await _context.Reservations
+                    .AsNoTracking()
+                    .Include(r => r.Room)
+                    .Include(r => r.Client)
+                    .Where(r => r.ClientId == client.Id)
+                    .OrderByDescending(r => r.DateIn)
+                    .ToListAsync();
+
+                return View(reservations);
+            }
         }
 
 

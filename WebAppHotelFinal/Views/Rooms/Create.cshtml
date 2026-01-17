@@ -1,54 +1,56 @@
 ﻿@model WebAppHotelFinal.Models.Room
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Room";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Create</h1>
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Add New Room</h3>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-<h4>Room</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="NumberRoom" class="control-label"></label>
-                <input asp-for="NumberRoom" class="form-control" />
-                <span asp-validation-for="NumberRoom" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Capacity" class="control-label"></label>
-                <input asp-for="Capacity" class="form-control" />
-                <span asp-validation-for="Capacity" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="RoomType" class="control-label"></label>
-                <select asp-for="RoomType"
-                        class="form-control"
-                        asp-items="Html.GetEnumSelectList<WebAppHotelFinal.Models.RoomType>()">
-                    <option value="">-- Избери тип стая --</option>
-                </select>
-                <span asp-validation-for="RoomType" class="text-danger"></span>
-            </div>
+                <div class="mb-3">
+                    <label asp-for="NumberRoom" class="form-label"></label>
+                    <input asp-for="NumberRoom" class="form-control" placeholder="Enter room number" />
+                    <span asp-validation-for="NumberRoom" class="text-danger"></span>
+                </div>
 
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+                <div class="mb-3">
+                    <label asp-for="Capacity" class="form-label"></label>
+                    <input asp-for="Capacity" class="form-control" placeholder="Enter capacity" />
+                    <span asp-validation-for="Capacity" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="RoomType" class="form-label"></label>
+                    <select asp-for="RoomType" class="form-select" asp-items="Html.GetEnumSelectList<WebAppHotelFinal.Models.RoomType>()">
+                        <option value="">-- Select Room Type --</option>
+                    </select>
+                    <span asp-validation-for="RoomType" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Price" class="form-label"></label>
+                    <input asp-for="Price" class="form-control" placeholder="Enter price per night (€)" />
+                    <span asp-validation-for="Price" class="text-danger"></span>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                    <button type="submit" class="btn btn-success">Create Room</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
