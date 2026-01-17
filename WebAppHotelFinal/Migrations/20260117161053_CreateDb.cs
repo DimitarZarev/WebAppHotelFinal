@@ -234,8 +234,8 @@ namespace WebAppHotelFinal.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName", "OnCreated" },
                 values: new object[,]
                 {
-                    { "ROLE_ADMIN", null, "Admin", "ADMIN", new DateTime(2026, 1, 17, 8, 57, 32, 537, DateTimeKind.Utc).AddTicks(5756) },
-                    { "ROLE_EMPLOYEE", null, "Employee", "EMPLOYEE", new DateTime(2026, 1, 17, 8, 57, 32, 537, DateTimeKind.Utc).AddTicks(5813) }
+                    { "ROLE_ADMIN", null, "Admin", "ADMIN", new DateTime(2026, 1, 17, 16, 10, 52, 979, DateTimeKind.Utc).AddTicks(9149) },
+                    { "ROLE_EMPLOYEE", null, "Employee", "EMPLOYEE", new DateTime(2026, 1, 17, 16, 10, 52, 979, DateTimeKind.Utc).AddTicks(9192) }
                 });
 
             migrationBuilder.CreateIndex(

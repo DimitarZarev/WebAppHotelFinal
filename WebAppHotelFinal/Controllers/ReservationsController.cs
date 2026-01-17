@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebAppHotelFinal.Data;
+using WebAppHotelFinal.Data.Domain;
 using WebAppHotelFinal.Models;
 
 namespace WebAppHotelFinal.Controllers
@@ -10,27 +12,36 @@ namespace WebAppHotelFinal.Controllers
     public class ReservationsController : Controller
     {
         private readonly ApplicationDbContext _context;
-
-        public ReservationsController(ApplicationDbContext context)
+        private readonly UserManager<AppUser> _userManager;
+        public ReservationsController(ApplicationDbContext context, UserManager<AppUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: Reservations
         public async Task<IActionResult> Index()
         {
+            var appUser = await _userManager.GetUserAsync(User);
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.AppUserId == appUser.Id);
+
+            if (client == null)
+                return Forbid(); // or redirect with a message
+
             var reservations = await _context.Reservations
                 .AsNoTracking()
                 .Include(r => r.Room)
                 .Include(r => r.Client)
+                .Where(r => r.ClientId == client.Id) // only their reservations
                 .OrderByDescending(r => r.DateIn)
                 .ToListAsync();
 
             return View(reservations);
         }
 
+
         // GET: Reservations/Details/5
-        
+
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -61,11 +72,15 @@ namespace WebAppHotelFinal.Controllers
         // POST: Reservations/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        
-        
         public async Task<IActionResult> Create(Reservation reservation)
         {
             ValidateDates(reservation);
+
+            var appUser = await _userManager.GetUserAsync(User);
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.AppUserId == appUser.Id);
+            if (client == null) return Forbid();
+
+            reservation.ClientId = client.Id; // assign automatically
 
             bool overlap = await _context.Reservations.AnyAsync(r =>
                 r.RoomId == reservation.RoomId &&
@@ -77,19 +92,12 @@ namespace WebAppHotelFinal.Controllers
 
             if (!ModelState.IsValid)
             {
-                await LoadDropDownsAsync(reservation.RoomId, reservation.ClientId);
+                await LoadDropDownsAsync(reservation.RoomId);
                 return View(reservation);
             }
 
             var room = await _context.Rooms.AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == reservation.RoomId);
-
-            if (room == null)
-            {
-                ModelState.AddModelError(nameof(Reservation.RoomId), "Невалидна стая.");
-                await LoadDropDownsAsync(reservation.RoomId, reservation.ClientId);
-                return View(reservation);
-            }
 
             int nights = (reservation.DateOut.Date - reservation.DateIn.Date).Days;
             reservation.TotalPrice = nights * room.Price;
@@ -99,6 +107,7 @@ namespace WebAppHotelFinal.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
 
         // GET: Reservations/Edit/5
         [Authorize(Roles = "Admin")]

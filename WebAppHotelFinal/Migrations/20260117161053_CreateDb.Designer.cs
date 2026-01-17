@@ -12,8 +12,8 @@ using WebAppHotelFinal.Data;
 namespace WebAppHotelFinal.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260117090810_CreateHotelDb")]
-    partial class CreateHotelDb
+    [Migration("20260117161053_CreateDb")]
+    partial class CreateDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -170,14 +170,14 @@ namespace WebAppHotelFinal.Migrations
                             Id = "ROLE_ADMIN",
                             Name = "Admin",
                             NormalizedName = "ADMIN",
-                            OnCreated = new DateTime(2026, 1, 17, 9, 8, 9, 559, DateTimeKind.Utc).AddTicks(7385)
+                            OnCreated = new DateTime(2026, 1, 17, 16, 10, 52, 979, DateTimeKind.Utc).AddTicks(9149)
                         },
                         new
                         {
                             Id = "ROLE_EMPLOYEE",
                             Name = "Employee",
                             NormalizedName = "EMPLOYEE",
-                            OnCreated = new DateTime(2026, 1, 17, 9, 8, 9, 559, DateTimeKind.Utc).AddTicks(7447)
+                            OnCreated = new DateTime(2026, 1, 17, 16, 10, 52, 979, DateTimeKind.Utc).AddTicks(9192)
                         });
                 });
 
