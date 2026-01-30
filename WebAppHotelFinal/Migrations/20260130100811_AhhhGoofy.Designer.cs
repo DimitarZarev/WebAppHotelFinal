@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebAppHotelFinal.Data;
 
@@ -11,9 +12,11 @@ using WebAppHotelFinal.Data;
 namespace WebAppHotelFinal.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260130100811_AhhhGoofy")]
+    partial class AhhhGoofy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -167,14 +170,14 @@ namespace WebAppHotelFinal.Migrations
                             Id = "ROLE_ADMIN",
                             Name = "Admin",
                             NormalizedName = "ADMIN",
-                            OnCreated = new DateTime(2026, 1, 30, 10, 23, 24, 567, DateTimeKind.Utc).AddTicks(4151)
+                            OnCreated = new DateTime(2026, 1, 30, 10, 8, 10, 343, DateTimeKind.Utc).AddTicks(7105)
                         },
                         new
                         {
                             Id = "ROLE_EMPLOYEE",
                             Name = "Employee",
                             NormalizedName = "EMPLOYEE",
-                            OnCreated = new DateTime(2026, 1, 30, 10, 23, 24, 567, DateTimeKind.Utc).AddTicks(4195)
+                            OnCreated = new DateTime(2026, 1, 30, 10, 8, 10, 343, DateTimeKind.Utc).AddTicks(7153)
                         });
                 });
 
@@ -263,6 +266,7 @@ namespace WebAppHotelFinal.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AppUserId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("FullName")
@@ -281,8 +285,7 @@ namespace WebAppHotelFinal.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppUserId")
-                        .IsUnique()
-                        .HasFilter("[AppUserId] IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("Clients");
                 });
@@ -405,7 +408,8 @@ namespace WebAppHotelFinal.Migrations
                     b.HasOne("WebAppHotelFinal.Data.Domain.AppUser", "AppUser")
                         .WithOne("Client")
                         .HasForeignKey("WebAppHotelFinal.Models.Client", "AppUserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("AppUser");
                 });

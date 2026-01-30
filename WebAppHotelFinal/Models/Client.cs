@@ -18,9 +18,8 @@ namespace WebAppHotelFinal.Models
 
         public bool IsAdult { get; set; }
 
-        // 🔑 Identity link
-        [Required]
-        public string AppUserId { get; set; } = string.Empty;
-        public AppUser AppUser { get; set; }
+      
+        public string? AppUserId { get; set; } = string.Empty;
+        public AppUser? AppUser { get; set; }
     }
 }

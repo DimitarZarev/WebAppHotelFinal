@@ -72,6 +72,9 @@ namespace WebAppHotelFinal.Controllers
         {
             if (!ModelState.IsValid) return View(client);
 
+            // Admin-created clients do NOT have an identity user
+            client.AppUserId = null;
+
             _context.Add(client);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));

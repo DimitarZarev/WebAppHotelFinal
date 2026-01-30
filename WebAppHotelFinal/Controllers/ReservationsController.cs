@@ -9,54 +9,54 @@ using WebAppHotelFinal.Models;
 
 namespace WebAppHotelFinal.Controllers
 {
+    [Authorize]
     public class ReservationsController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<AppUser> _userManager;
-        public ReservationsController(ApplicationDbContext context, UserManager<AppUser> userManager)
+
+        public ReservationsController(
+            ApplicationDbContext context,
+            UserManager<AppUser> userManager)
         {
             _context = context;
             _userManager = userManager;
         }
 
-        // GET: Reservations
+        // ============================
+        // INDEX
+        // ============================
         public async Task<IActionResult> Index()
         {
             if (User.IsInRole("Admin"))
             {
-                // Admin sees all reservations
-                var allReservations = await _context.Reservations
+                return View(await _context.Reservations
                     .AsNoTracking()
                     .Include(r => r.Room)
                     .Include(r => r.Client)
                     .OrderByDescending(r => r.DateIn)
-                    .ToListAsync();
-
-                return View(allReservations);
+                    .ToListAsync());
             }
-            else
-            {
-                // Regular user sees only their reservations
-                var appUser = await _userManager.GetUserAsync(User);
-                var client = await _context.Clients.FirstOrDefaultAsync(c => c.AppUserId == appUser.Id);
 
-                if (client == null) return Forbid();
+            var userId = _userManager.GetUserId(User);
+            var client = await _context.Clients
+                .FirstOrDefaultAsync(c => c.AppUserId == userId);
 
-                var reservations = await _context.Reservations
-                    .AsNoTracking()
-                    .Include(r => r.Room)
-                    .Include(r => r.Client)
-                    .Where(r => r.ClientId == client.Id)
-                    .OrderByDescending(r => r.DateIn)
-                    .ToListAsync();
+            if (client == null)
+                return Forbid();
 
-                return View(reservations);
-            }
+            return View(await _context.Reservations
+                .AsNoTracking()
+                .Include(r => r.Room)
+                .Include(r => r.Client)
+                .Where(r => r.ClientId == client.Id)
+                .OrderByDescending(r => r.DateIn)
+                .ToListAsync());
         }
 
-
-        // GET: Reservations/Details/5
-
+        // ============================
+        // DETAILS
+        // ============================
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -65,18 +65,28 @@ namespace WebAppHotelFinal.Controllers
                 .AsNoTracking()
                 .Include(r => r.Room)
                 .Include(r => r.Client)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (reservation == null) return NotFound();
+            if (reservation == null)
+                return NotFound();
+
+            if (!User.IsInRole("Admin"))
+            {
+                var userId = _userManager.GetUserId(User);
+                if (reservation.Client?.AppUserId != userId)
+                    return Forbid();
+            }
 
             return View(reservation);
         }
 
-        // GET: Reservations/Create
-        [HttpGet]
+        // ============================
+        // CREATE (GET)
+        // ============================
         public async Task<IActionResult> Create()
         {
-            await LoadDropDownsAsync();
+            await LoadDropDownsAsync(User.IsInRole("Admin"));
+
             return View(new Reservation
             {
                 DateIn = DateTime.Today,
@@ -84,18 +94,26 @@ namespace WebAppHotelFinal.Controllers
             });
         }
 
-        // POST: Reservations/Create
+        // ============================
+        // CREATE (POST)
+        // ============================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Reservation reservation)
         {
             ValidateDates(reservation);
 
-            var appUser = await _userManager.GetUserAsync(User);
-            var client = await _context.Clients.FirstOrDefaultAsync(c => c.AppUserId == appUser.Id);
-            if (client == null) return Forbid();
+            if (!User.IsInRole("Admin"))
+            {
+                var userId = _userManager.GetUserId(User);
+                var client = await _context.Clients
+                    .FirstOrDefaultAsync(c => c.AppUserId == userId);
 
-            reservation.ClientId = client.Id; // assign automatically
+                if (client == null)
+                    return Forbid();
+
+                reservation.ClientId = client.Id;
+            }
 
             bool overlap = await _context.Reservations.AnyAsync(r =>
                 r.RoomId == reservation.RoomId &&
@@ -107,7 +125,8 @@ namespace WebAppHotelFinal.Controllers
 
             if (!ModelState.IsValid)
             {
-                await LoadDropDownsAsync(reservation.RoomId);
+                await LoadDropDownsAsync(User.IsInRole("Admin"),
+                    reservation.RoomId, reservation.ClientId);
                 return View(reservation);
             }
 
@@ -123,8 +142,9 @@ namespace WebAppHotelFinal.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
-        // GET: Reservations/Edit/5
+        // ============================
+        // EDIT (ADMIN ONLY)
+        // ============================
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
@@ -133,22 +153,24 @@ namespace WebAppHotelFinal.Controllers
             var reservation = await _context.Reservations.FindAsync(id);
             if (reservation == null) return NotFound();
 
-            await LoadDropDownsAsync(reservation.RoomId, reservation.ClientId);
+            await LoadDropDownsAsync(true,
+                reservation.RoomId, reservation.ClientId);
+
             return View(reservation);
         }
 
-        // POST: Reservations/Edit/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Reservation reservation)
         {
-            if (id != reservation.Id) return NotFound();
+            if (id != reservation.Id)
+                return NotFound();
 
             ValidateDates(reservation);
 
             bool overlap = await _context.Reservations.AnyAsync(r =>
-                r.Id != reservation.Id &&                      // важно: да не сравнява със себе си
+                r.Id != reservation.Id &&
                 r.RoomId == reservation.RoomId &&
                 r.DateIn < reservation.DateOut &&
                 reservation.DateIn < r.DateOut);
@@ -158,19 +180,13 @@ namespace WebAppHotelFinal.Controllers
 
             if (!ModelState.IsValid)
             {
-                await LoadDropDownsAsync(reservation.RoomId, reservation.ClientId);
+                await LoadDropDownsAsync(true,
+                    reservation.RoomId, reservation.ClientId);
                 return View(reservation);
             }
 
             var room = await _context.Rooms.AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == reservation.RoomId);
-
-            if (room == null)
-            {
-                ModelState.AddModelError(nameof(Reservation.RoomId), "Невалидна стая.");
-                await LoadDropDownsAsync(reservation.RoomId, reservation.ClientId);
-                return View(reservation);
-            }
 
             int nights = (reservation.DateOut.Date - reservation.DateIn.Date).Days;
             reservation.TotalPrice = nights * room.Price;
@@ -181,7 +197,9 @@ namespace WebAppHotelFinal.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: Reservations/Delete/5
+        // ============================
+        // DELETE (ADMIN ONLY)
+        // ============================
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
@@ -191,28 +209,32 @@ namespace WebAppHotelFinal.Controllers
                 .AsNoTracking()
                 .Include(r => r.Room)
                 .Include(r => r.Client)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (reservation == null) return NotFound();
+            if (reservation == null)
+                return NotFound();
 
             return View(reservation);
         }
 
-        // POST: Reservations/Delete/5
         [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var reservation = await _context.Reservations.FindAsync(id);
-            if (reservation == null) return RedirectToAction(nameof(Index));
-
-            _context.Reservations.Remove(reservation);
-            await _context.SaveChangesAsync();
+            if (reservation != null)
+            {
+                _context.Reservations.Remove(reservation);
+                await _context.SaveChangesAsync();
+            }
 
             return RedirectToAction(nameof(Index));
         }
 
+        // ============================
+        // HELPERS
+        // ============================
         private void ValidateDates(Reservation reservation)
         {
             if (reservation.DateOut <= reservation.DateIn)
@@ -220,24 +242,27 @@ namespace WebAppHotelFinal.Controllers
                 ModelState.AddModelError(nameof(Reservation.DateOut),
                     "Дата на освобождаване трябва да е след дата на настаняване.");
             }
-
-            // допълнителна защита: поне 1 нощувка
-            int nights = (reservation.DateOut.Date - reservation.DateIn.Date).Days;
-            if (nights <= 0)
-            {
-                ModelState.AddModelError("", "Броят нощувки трябва да е поне 1.");
-            }
         }
 
-        private async Task LoadDropDownsAsync(int? selectedRoomId = null, int? selectedClientId = null)
+        private async Task LoadDropDownsAsync(
+            bool includeClients,
+            int? selectedRoomId = null,
+            int? selectedClientId = null)
         {
             ViewData["RoomId"] = new SelectList(
-                await _context.Rooms.AsNoTracking().OrderBy(r => r.NumberRoom).ToListAsync(),
+                await _context.Rooms.AsNoTracking()
+                    .OrderBy(r => r.NumberRoom)
+                    .ToListAsync(),
                 "Id", "NumberRoom", selectedRoomId);
 
-            ViewData["ClientId"] = new SelectList(
-                await _context.Clients.AsNoTracking().OrderBy(c => c.FullName).ToListAsync(),
-                "Id", "FullName", selectedClientId);
+            if (includeClients)
+            {
+                ViewData["ClientId"] = new SelectList(
+                    await _context.Clients.AsNoTracking()
+                        .OrderBy(c => c.FullName)
+                        .ToListAsync(),
+                    "Id", "FullName", selectedClientId);
+            }
         }
     }
 }
